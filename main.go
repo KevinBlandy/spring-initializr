@@ -114,7 +114,7 @@ func main() {
 	server := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			request.Host = "start.spring.io"
+			request.Host = targetURL.Host
 			request.Header.Set("X-User-Agent", "https://start.springboot.io/about")
 			router.ServeHTTP(writer, request)
 		}),
