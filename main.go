@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"github.com/andybalholm/brotli"
+	"golang.org/x/net/html"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 )
 
 func init() {
@@ -32,33 +36,87 @@ func main() {
 
 	reverseProxy := httputil.NewSingleHostReverseProxy(targetURL)
 
-	// 异常处理
 	reverseProxy.ErrorHandler = func(writer http.ResponseWriter, request *http.Request, err error) {
 		log.Printf("ErrorHandler Error: %s\n", err.Error())
 	}
-	// 修改响应
-	reverseProxy.ModifyResponse = func(response *http.Response) error {
+	reverseProxy.ModifyResponse = func(response *http.Response) (err error) {
+
 		// 仅仅修改主页
 		if response.Request.RequestURI != "/" {
 			return nil
 		}
-		// TODO 解压BR数据
+		contentType := response.Header.Get("Content-Type")
+
+		// 忽略非 html 响应
+		if contentType == "" || !strings.HasPrefix(strings.ToLower(strings.TrimSpace(contentType)), "text/html") {
+			return nil
+		}
+
+		//// 忽略空响应
+		//if response.ContentLength < 1 {
+		//	return nil
+		//}
+
+		contentEncoding := response.Header.Get("Content-Encoding")
+
+		var payload []byte
+
+		if contentEncoding == "br" {
+			payload, err = io.ReadAll(brotli.NewReader(response.Body))
+			if err != nil {
+				return err
+			}
+		} else if contentEncoding == "gzip" {
+			// TODO gzip 压缩
+		} else {
+			// 未知的压缩方式
+			return nil
+		}
+
+		defer func() {
+			if err != nil {
+				log.Printf("ModifyResponse Error: %s\n", err.Error())
+				response.Body = io.NopCloser(bytes.NewReader(payload))
+			}
+		}()
+
+		// 解析html
+		document, err := html.Parse(bytes.NewReader(payload))
+		if err != nil {
+			return nil
+		}
+
 		// TODO 解析HTML，在 </body> 前插入数据
 		// TODO 修改length & encoding
 		// TODO 压缩编码给客户端
-		payload, err := io.ReadAll(response.Body)
-		if err != nil {
+
+		// 渲染到内存
+		buf := &bytes.Buffer{}
+		if err = html.Render(buf, document); err != nil {
 			return err
 		}
-		response.Body = io.NopCloser(bytes.NewReader(payload))
+
+		response.Header.Del("Content-Encoding")
+		response.Header.Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+		response.Body = io.NopCloser(buf)
 		return nil
 	}
+
+	router := http.NewServeMux()
+	router.HandleFunc("/about", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = io.WriteString(writer, "https://start.springboot.io/about")
+	})
+
+	// Proxy
+	router.HandleFunc("/", reverseProxy.ServeHTTP)
 
 	server := &http.Server{
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			request.Host = "start.spring.io"
-			reverseProxy.ServeHTTP(writer, request)
+			request.Header.Set("X-User-Agent", "https://start.springboot.io/about")
+			router.ServeHTTP(writer, request)
 		}),
 	}
 
