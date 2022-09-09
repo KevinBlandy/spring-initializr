@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/andybalholm/brotli"
 	"golang.org/x/net/html"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 )
 
@@ -86,6 +86,10 @@ func main() {
 			return nil
 		}
 
+		for node := document; node != nil; node = node.FirstChild {
+
+		}
+
 		// TODO 解析HTML，在 </body> 前插入数据
 		// TODO 修改length & encoding
 		// TODO 压缩编码给客户端
@@ -97,7 +101,7 @@ func main() {
 		}
 
 		response.Header.Del("Content-Encoding")
-		response.Header.Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+		response.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 		response.Body = io.NopCloser(buf)
 		return nil
 	}
