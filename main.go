@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/andybalholm/brotli"
 	"golang.org/x/net/html"
 	"io"
@@ -13,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 )
 
@@ -97,7 +97,7 @@ func main() {
 		}
 
 		response.Header.Del("Content-Encoding")
-		response.Header.Set("Content-Length", fmt.Sprintf("%d", buf.Len()))
+		response.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 		response.Body = io.NopCloser(buf)
 		return nil
 	}
