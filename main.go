@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/flate"
 	"compress/gzip"
 	"context"
 	"github.com/andybalholm/brotli"
@@ -83,43 +84,38 @@ func main() {
 
 		contentEncoding := response.Header.Get("Content-Encoding")
 
-		var payload []byte
+		var bodyReader io.Reader
+		switch contentEncoding {
+		case "br":
+			bodyReader = brotli.NewReader(response.Body)
+		case "deflate":
+			bodyReader = flate.NewReader(response.Body)
+		case "gzip":
+			{
+				bodyReader, err = gzip.NewReader(response.Body)
+				if err != nil {
+					return err
+				}
+			}
+		case "":
+			{
+				bodyReader = response.Body
+			}
+		default:
+			log.Printf("未知的Content-Encoding，直接返回: %s\n", contentEncoding)
+			return nil
 
-		if contentEncoding == "br" {
-			payload, err = io.ReadAll(brotli.NewReader(response.Body))
-			if err != nil {
-				return err
-			}
-		} else if contentEncoding == "gzip" {
-			r, err := gzip.NewReader(response.Body)
-			if err != nil {
-				return err
-			}
-			payload, err = io.ReadAll(r)
-			if err != nil {
-				return err
-			}
-		} else if contentEncoding == "" {
-			payload, err = io.ReadAll(response.Body)
-			if err != nil {
-				return err
-			}
-		} else {
+		}
+
+		// ---------------- 解析html ----------------
+		document, err := html.Parse(bodyReader)
+		if err != nil {
 			return nil
 		}
 
 		defer func() {
-			if err != nil {
-				log.Printf("ModifyResponse Error: %s\n", err.Error())
-				response.Body = io.NopCloser(bytes.NewReader(payload))
-			}
+			_ = response.Body.Close()
 		}()
-
-		// ---------------- 解析html ----------------
-		document, err := html.Parse(bytes.NewReader(payload))
-		if err != nil {
-			return nil
-		}
 
 		// 删除body前面的3个script标签，官方用于统计的，我这里用不着
 		bodyNode := GetNode(document, func(node *html.Node) bool {
@@ -155,7 +151,7 @@ func main() {
 		if descriptionNode != nil {
 			for i := range descriptionNode.Attr {
 				if descriptionNode.Attr[i].Key == "content" {
-					descriptionNode.Attr[i].Val = "快速生成你的Spring Boot应用"
+					descriptionNode.Attr[i].Val = "快速构建你的 spring boot 应用。"
 				}
 			}
 		}
@@ -166,7 +162,7 @@ func main() {
 			Data: "meta",
 			Attr: []html.Attribute{{
 				Key: "content",
-				Val: "spring boot, Spring Initializr, spring boot 脚手架",
+				Val: "Spring Initializr, spring boot 脚手架",
 			}, {
 				Key: "name",
 				Val: "keywords",
