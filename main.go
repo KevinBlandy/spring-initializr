@@ -110,7 +110,8 @@ func main() {
 		// ---------------- 解析html ----------------
 		document, err := html.Parse(bodyReader)
 		if err != nil {
-			return nil
+			log.Printf("HTML解析异常: %s\n", err.Error())
+			return err
 		}
 
 		defer func() {
@@ -193,6 +194,7 @@ func main() {
 		// 渲染到内存
 		buf := &bytes.Buffer{}
 		if err = html.Render(buf, document); err != nil {
+			log.Printf("HTML渲染异常: %s\n", err.Error())
 			return err
 		}
 
