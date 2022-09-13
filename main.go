@@ -59,6 +59,11 @@ func main() {
 	}
 	reverseProxy.ModifyResponse = func(response *http.Response) (err error) {
 
+		// 异常响应
+		if response.StatusCode != http.StatusOK {
+			return nil
+		}
+
 		// 仅仅修改主页
 		if response.Request.RequestURI != "/" {
 			return nil
