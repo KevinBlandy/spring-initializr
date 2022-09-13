@@ -156,16 +156,16 @@ func main() {
 			}},
 		}, descriptionNode)
 
-		// 自定义脚本
-		headNode.AppendChild(&html.Node{
-			Type:     html.ElementNode,
-			DataAtom: 0,
-			Data:     "script",
-			Attr: []html.Attribute{{
-				Key: "src",
-				Val: "/localhost/index.js",
-			}},
-		})
+		//// 自定义脚本
+		//headNode.AppendChild(&html.Node{
+		//	Type:     html.ElementNode,
+		//	DataAtom: 0,
+		//	Data:     "script",
+		//	Attr: []html.Attribute{{
+		//		Key: "src",
+		//		Val: "/localhost/index.js",
+		//	}},
+		//})
 
 		// 插入百度统计代码
 		headNode.AppendChild(&html.Node{
