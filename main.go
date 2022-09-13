@@ -209,7 +209,6 @@ func main() {
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			request.Host = targetURL.Host
-			log.Println(request.Host)
 			request.Header.Set("X-User-Agent", "https://start.springboot.io/about")
 			router.ServeHTTP(writer, request)
 		}),
