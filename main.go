@@ -183,6 +183,8 @@ func main() {
 			return err
 		}
 
+		log.Println("重渲染")
+
 		response.Header.Del("Content-Encoding")
 		response.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 		response.Body = io.NopCloser(buf)
