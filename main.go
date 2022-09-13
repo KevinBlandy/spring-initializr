@@ -103,6 +103,8 @@ func main() {
 			}
 		}()
 
+		log.Printf("ContentLength: %d\n", len(payload))
+
 		// ---------------- 解析html ----------------
 		document, err := html.Parse(bytes.NewReader(payload))
 		if err != nil {
@@ -188,8 +190,6 @@ func main() {
 			return err
 		}
 
-		log.Println("重渲染")
-
 		response.Header.Del("Content-Encoding")
 		response.Header.Set("Content-Length", strconv.Itoa(buf.Len()))
 		response.Body = io.NopCloser(buf)
@@ -209,6 +209,7 @@ func main() {
 		Addr: ":8080",
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 			request.Host = targetURL.Host
+			log.Println(request.Host)
 			request.Header.Set("X-User-Agent", "https://start.springboot.io/about")
 			router.ServeHTTP(writer, request)
 		}),
