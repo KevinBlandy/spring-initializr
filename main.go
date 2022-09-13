@@ -24,6 +24,24 @@ func init() {
 const (
 	// SpringInitializer Spring 官方的地址
 	SpringInitializer = "https://start.spring.io/"
+	BaiduStatistics   = `
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?01a8b83d4f38d7c890e8dbcaa8e661d3";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+
+`
+	About = `
+To Pivotal
+
+Hello, due to the firewall blocking in China, most Chinese users are not able to use the official Spring Initializr service, so I created this proxy service, specifically for spring users in mainland China. Please don't block me, thank you very much.
+
+Email: admin@springboot.io
+
+`
 )
 
 func main() {
@@ -80,19 +98,84 @@ func main() {
 			}
 		}()
 
-		// 解析html
+		// ---------------- 解析html ----------------
 		document, err := html.Parse(bytes.NewReader(payload))
 		if err != nil {
 			return nil
 		}
 
-		for node := document; node != nil; node = node.FirstChild {
+		// 删除body前面的3个script标签，官方用于统计的，我这里用不着
+		bodyNode := GetNode(document, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && node.Data == "body"
+		})
 
+		var scriptNodes []*html.Node
+		for node := bodyNode.LastChild; node != nil; node = node.PrevSibling {
+			if node.Type == html.ElementNode && node.Data == "script" {
+				scriptNodes = append(scriptNodes, node)
+			}
+		}
+		for _, v := range scriptNodes {
+			bodyNode.RemoveChild(v)
 		}
 
-		// TODO 解析HTML，在 </body> 前插入数据
-		// TODO 修改length & encoding
-		// TODO 压缩编码给客户端
+		// head标签
+		headNode := GetNode(document, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && node.Data == "head"
+		})
+
+		// 修改 description
+		descriptionNode := GetNode(headNode, func(node *html.Node) bool {
+			if node.Type == html.ElementNode && node.Data == "meta" {
+				for _, v := range node.Attr {
+					if strings.EqualFold(v.Key, "name") && strings.EqualFold(v.Val, "description") {
+						return true
+					}
+				}
+			}
+			return false
+		})
+		if descriptionNode != nil {
+			for i := range descriptionNode.Attr {
+				if descriptionNode.Attr[i].Key == "content" {
+					descriptionNode.Attr[i].Val = "快速生成你的Spring Boot应用"
+				}
+			}
+		}
+
+		// 插入Keywords
+		headNode.InsertBefore(&html.Node{
+			Type: html.ElementNode,
+			Data: "meta",
+			Attr: []html.Attribute{{
+				Key: "content",
+				Val: "spring boot, Spring Initializr, spring boot 脚手架",
+			}, {
+				Key: "name",
+				Val: "keywords",
+			}},
+		}, descriptionNode)
+
+		// 自定义脚本
+		headNode.AppendChild(&html.Node{
+			Type:     html.ElementNode,
+			DataAtom: 0,
+			Data:     "script",
+			Attr: []html.Attribute{{
+				Key: "src",
+				Val: "/localhost/index.js",
+			}},
+		})
+
+		// 插入百度统计代码
+		headNode.AppendChild(&html.Node{
+			FirstChild: &html.Node{
+				Type: html.TextNode,
+				Data: BaiduStatistics,
+			},
+			Type: html.ElementNode,
+			Data: "script",
+		})
 
 		// 渲染到内存
 		buf := &bytes.Buffer{}
@@ -109,7 +192,7 @@ func main() {
 	router := http.NewServeMux()
 	router.HandleFunc("/about", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = io.WriteString(writer, "https://start.springboot.io/about")
+		_, _ = io.WriteString(writer, About)
 	})
 
 	// Proxy
@@ -139,4 +222,21 @@ func main() {
 	}
 
 	log.Println("Bye")
+}
+
+func GetNode(node *html.Node, test func(*html.Node) bool) *html.Node {
+	if test(node) {
+		return node
+	}
+	if node.FirstChild != nil {
+		if ret := GetNode(node.FirstChild, test); ret != nil {
+			return ret
+		}
+	}
+	if node.NextSibling != nil {
+		if ret := GetNode(node.NextSibling, test); ret != nil {
+			return ret
+		}
+	}
+	return nil
 }
