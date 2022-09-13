@@ -99,8 +99,12 @@ func main() {
 			if err != nil {
 				return err
 			}
+		} else if contentEncoding == "" {
+			payload, err = io.ReadAll(response.Body)
+			if err != nil {
+				return err
+			}
 		} else {
-			// 未知的压缩方式
 			return nil
 		}
 
@@ -110,8 +114,6 @@ func main() {
 				response.Body = io.NopCloser(bytes.NewReader(payload))
 			}
 		}()
-
-		log.Printf("ContentLength: %d\n", len(payload))
 
 		// ---------------- 解析html ----------------
 		document, err := html.Parse(bytes.NewReader(payload))
