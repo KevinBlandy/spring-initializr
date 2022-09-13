@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"github.com/andybalholm/brotli"
 	"golang.org/x/net/html"
@@ -90,7 +91,14 @@ func main() {
 				return err
 			}
 		} else if contentEncoding == "gzip" {
-			// TODO gzip 压缩
+			r, err := gzip.NewReader(response.Body)
+			if err != nil {
+				return err
+			}
+			payload, err = io.ReadAll(r)
+			if err != nil {
+				return err
+			}
 		} else {
 			// 未知的压缩方式
 			return nil
