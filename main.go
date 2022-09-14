@@ -26,7 +26,8 @@ func init() {
 const (
 	// SpringInitializer Spring 官方的地址
 	SpringInitializer = "https://start.spring.io/"
-	BaiduStatistics   = `
+	// BaiduStatistics 百度统计JS代码
+	BaiduStatistics = `
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
@@ -36,6 +37,7 @@ var _hmt = _hmt || [];
 })();
 
 `
+	// About 关于我们
 	About = `
 To Pivotal
 
