@@ -211,7 +211,10 @@ func main() {
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		_, _ = io.WriteString(writer, About)
 	})
-
+	router.HandleFunc("/robots.txt", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = io.WriteString(writer, "User-agent: *")
+	})
 	// Proxy
 	router.HandleFunc("/", reverseProxy.ServeHTTP)
 
