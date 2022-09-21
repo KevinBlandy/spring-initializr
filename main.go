@@ -121,19 +121,19 @@ func main() {
 		}()
 
 		// 删除body前面的3个script标签，官方用于统计的，我这里用不着
-		bodyNode := GetNode(document, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && node.Data == "body"
-		})
-
-		var scriptNodes []*html.Node
-		for node := bodyNode.LastChild; node != nil; node = node.PrevSibling {
-			if node.Type == html.ElementNode && node.Data == "script" {
-				scriptNodes = append(scriptNodes, node)
-			}
-		}
-		for _, v := range scriptNodes {
-			bodyNode.RemoveChild(v)
-		}
+		//bodyNode := GetNode(document, func(node *html.Node) bool {
+		//	return node.Type == html.ElementNode && node.Data == "body"
+		//})
+		//
+		//var scriptNodes []*html.Node
+		//for node := bodyNode.LastChild; node != nil; node = node.PrevSibling {
+		//	if node.Type == html.ElementNode && node.Data == "script" {
+		//		scriptNodes = append(scriptNodes, node)
+		//	}
+		//}
+		//for _, v := range scriptNodes {
+		//	bodyNode.RemoveChild(v)
+		//}
 
 		// head标签
 		headNode := GetNode(document, func(node *html.Node) bool {
